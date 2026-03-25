@@ -1,10 +1,19 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCarrito } from '@/context/CarritoContext';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Navbar() {
   const { totalItems } = useCarrito();
+  const { isAuthenticated, role, logout } = useAuth();
+  const router = useRouter();
+
+  function handleLogout() {
+    logout();
+    router.push('/login');
+  }
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -14,9 +23,27 @@ export default function Navbar() {
         </Link>
 
         <nav className="flex items-center gap-3 sm:gap-6">
-          <Link href="/catalogo" className="hidden xs:block text-sm text-gray-600 hover:text-indigo-600 transition-colors">
-            Catalogo
+          <Link href="/catalogo" className="hidden sm:block text-sm text-gray-600 hover:text-indigo-600 transition-colors">
+            Catálogo
           </Link>
+
+          {isAuthenticated && role === 'ADMIN' && (
+            <Link href="/admin" className="hidden sm:block text-sm text-gray-600 hover:text-indigo-600 transition-colors">
+              Admin
+            </Link>
+          )}
+
+          {isAuthenticated && role === 'SELLER' && (
+            <Link href="/vendedor" className="hidden sm:block text-sm text-gray-600 hover:text-indigo-600 transition-colors">
+              Mis productos
+            </Link>
+          )}
+
+          {isAuthenticated && (
+            <Link href="/perfil" className="hidden sm:block text-sm text-gray-600 hover:text-indigo-600 transition-colors">
+              Mi perfil
+            </Link>
+          )}
 
           <Link href="/carrito" className="relative p-2 text-gray-600 hover:text-indigo-600 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -28,6 +55,19 @@ export default function Navbar() {
               </span>
             )}
           </Link>
+
+          {isAuthenticated ? (
+            <button
+              onClick={handleLogout}
+              className="text-sm text-gray-600 hover:text-red-600 transition-colors"
+            >
+              Salir
+            </button>
+          ) : (
+            <Link href="/login" className="text-sm font-medium text-indigo-600 hover:underline">
+              Iniciar sesión
+            </Link>
+          )}
         </nav>
       </div>
     </header>
