@@ -16,30 +16,32 @@ export default function FiltroGenero({ generos, generoActivo, search }: FiltroGe
   };
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Link
-        href={buildHref()}
-        className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-          !generoActivo
-            ? 'bg-indigo-600 text-white'
-            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-        }`}
-      >
-        Todos
-      </Link>
-      {generos.map((genero) => (
+    <div className="overflow-x-auto pb-1 -mb-1">
+      <div className="flex gap-2 sm:flex-wrap w-max sm:w-auto">
         <Link
-          key={genero}
-          href={buildHref(genero)}
-          className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            generoActivo === genero
+          href={buildHref()}
+          className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            !generoActivo
               ? 'bg-indigo-600 text-white'
               : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
           }`}
         >
-          {genero}
+          Todos
         </Link>
-      ))}
+        {generos.map((genero) => (
+          <Link
+            key={genero}
+            href={buildHref(genero)}
+            className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              generoActivo === genero
+                ? 'bg-indigo-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {genero}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

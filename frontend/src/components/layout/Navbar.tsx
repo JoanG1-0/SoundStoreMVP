@@ -13,8 +13,8 @@ export default function Navbar() {
           SoundStore
         </Link>
 
-        <nav className="flex items-center gap-6">
-          <Link href="/catalogo" className="text-sm text-gray-600 hover:text-indigo-600 transition-colors">
+        <nav className="flex items-center gap-3 sm:gap-6">
+          <Link href="/catalogo" className="hidden xs:block text-sm text-gray-600 hover:text-indigo-600 transition-colors">
             Catalogo
           </Link>
 
