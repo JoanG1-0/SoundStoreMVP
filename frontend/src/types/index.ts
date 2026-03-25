@@ -40,8 +40,10 @@ export interface Producto {
   genre: string;
   stock: number;
   imageUrl?: string;
-  isActive: boolean;
+  active: boolean;
   createdBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ItemPedido {
