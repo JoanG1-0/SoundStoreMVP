@@ -12,6 +12,7 @@ import com.soundstore.backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +24,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final CloudinaryService cloudinaryService;
 
     @Transactional(readOnly = true)
     public List<ProductResponseDto> getCatalog(String genre) {
@@ -73,6 +75,16 @@ public class ProductService {
         product.setStock(request.stock());
         product.setImageUrl(request.imageUrl());
 
+        return toDto(productRepository.save(product));
+    }
+
+    @Transactional
+    public ProductResponseDto uploadImage(UUID id, MultipartFile file) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException("Producto no encontrado"));
+
+        String imageUrl = cloudinaryService.uploadImage(file);
+        product.setImageUrl(imageUrl);
         return toDto(productRepository.save(product));
     }
 

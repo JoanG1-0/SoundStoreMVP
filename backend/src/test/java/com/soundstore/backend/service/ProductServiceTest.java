@@ -16,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,6 +36,7 @@ class ProductServiceTest {
 
     @Mock private ProductRepository productRepository;
     @Mock private UserRepository userRepository;
+    @Mock private CloudinaryService cloudinaryService;
 
     @InjectMocks
     private ProductService productService;
@@ -272,5 +274,36 @@ class ProductServiceTest {
         assertThrows(ProductNotFoundException.class,
                 () -> productService.toggleStatus(id, false));
         verify(productRepository, never()).save(any());
+    }
+
+    // ─── uploadImage ──────────────────────────────────────────────────────────
+
+    @Test
+    void uploadImage_archivoValido_actualizaImageUrlEnProducto() {
+        User seller = buildSeller();
+        Product product = buildProduct(seller);
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "img.jpg", "image/jpeg", "contenido".getBytes());
+
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
+        when(cloudinaryService.uploadImage(file)).thenReturn("https://res.cloudinary.com/test.jpg");
+        when(productRepository.save(any(Product.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ProductResponseDto result = productService.uploadImage(product.getId(), file);
+
+        assertThat(result.imageUrl()).isEqualTo("https://res.cloudinary.com/test.jpg");
+    }
+
+    @Test
+    void uploadImage_productoNoExiste_lanzaProductNotFoundException() {
+        UUID id = UUID.randomUUID();
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "img.jpg", "image/jpeg", "contenido".getBytes());
+
+        when(productRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(ProductNotFoundException.class,
+                () -> productService.uploadImage(id, file));
+        verify(cloudinaryService, never()).uploadImage(any());
     }
 }
