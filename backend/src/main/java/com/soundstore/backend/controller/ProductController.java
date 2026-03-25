@@ -8,9 +8,11 @@ import com.soundstore.backend.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +47,13 @@ public class ProductController {
             @PathVariable UUID id,
             @Valid @RequestBody UpdateProductRequestDto request) {
         return productService.update(id, request);
+    }
+
+    @PostMapping(value = "/{id}/imagen", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ProductResponseDto uploadImage(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) {
+        return productService.uploadImage(id, file);
     }
 
     @PatchMapping("/{id}/estado")
