@@ -23,46 +23,44 @@ export default function CarritoPage() {
   const [advertencias, setAdvertencias] = useState<AdvertenciaStock[]>([]);
   const [validando, setValidando] = useState(false);
 
-  // RF-CR-05: Validar stock en tiempo real al montar la página
+  // RF-CR-05: Validar stock en tiempo real al montar la página (batch endpoint SS-29)
   useEffect(() => {
     if (items.length === 0) return;
 
     const validarStock = async () => {
       setValidando(true);
-      const nuevasAdvertencias: AdvertenciaStock[] = [];
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/validate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(items.map((i) => ({ productId: i.producto.id, quantity: i.cantidad }))),
+        });
+        if (!res.ok) return;
 
-      await Promise.all(
-        items.map(async (item) => {
-          try {
-            const res = await fetch(
-              `${process.env.NEXT_PUBLIC_API_URL}/products/${item.producto.id}`,
-              { cache: 'no-store' }
-            );
-            if (!res.ok) return;
-            const producto = await res.json();
-            const stockActual: number = producto.stock;
+        const data: { valid: boolean; items: { productId: string; productName: string; requestedQuantity: number; availableStock: number; available: boolean }[] } = await res.json();
 
-            if (stockActual < item.cantidad) {
-              nuevasAdvertencias.push({
-                productoId: item.producto.id,
-                nombre: item.producto.name,
-                cantidadAnterior: item.cantidad,
-                stockActual,
-              });
-              if (stockActual === 0) {
-                eliminar(item.producto.id);
-              } else {
-                modificarCantidad(item.producto.id, stockActual);
-              }
+        const nuevasAdvertencias: AdvertenciaStock[] = [];
+        for (const result of data.items) {
+          if (!result.available) {
+            nuevasAdvertencias.push({
+              productoId: result.productId,
+              nombre: result.productName,
+              cantidadAnterior: result.requestedQuantity,
+              stockActual: result.availableStock,
+            });
+            if (result.availableStock === 0) {
+              eliminar(result.productId);
+            } else {
+              modificarCantidad(result.productId, result.availableStock);
             }
-          } catch {
-            // ignorar errores de red
           }
-        })
-      );
-
-      setAdvertencias(nuevasAdvertencias);
-      setValidando(false);
+        }
+        setAdvertencias(nuevasAdvertencias);
+      } catch {
+        // ignorar errores de red
+      } finally {
+        setValidando(false);
+      }
     };
 
     validarStock();
