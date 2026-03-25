@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Producto } from '@/types';
+import BotonAgregarCarrito from '@/components/catalogo/BotonAgregarCarrito';
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -101,13 +102,9 @@ export default async function ProductoDetallePage({ params }: Props) {
               </div>
 
               {/* Boton agregar al carrito */}
-              <button
-                disabled={producto.stock === 0}
-                className="mt-auto w-full py-3 px-6 rounded-xl font-semibold text-sm transition-colors
-                  bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
-              >
-                {producto.stock === 0 ? 'No disponible' : 'Agregar al carrito'}
-              </button>
+              <div className="mt-auto">
+                <BotonAgregarCarrito producto={producto} />
+              </div>
 
               <Link
                 href="/catalogo"
