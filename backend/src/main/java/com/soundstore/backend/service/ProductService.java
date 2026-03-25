@@ -27,9 +27,11 @@ public class ProductService {
     private final CloudinaryService cloudinaryService;
 
     @Transactional(readOnly = true)
-    public List<ProductResponseDto> getCatalog(String genre) {
+    public List<ProductResponseDto> getCatalog(String genre, String search) {
         List<Product> products;
-        if (genre != null && !genre.isBlank()) {
+        if (search != null && !search.isBlank()) {
+            products = productRepository.searchByNameOrGenre(search.trim());
+        } else if (genre != null && !genre.isBlank()) {
             products = productRepository.findByGenreIgnoreCaseAndActiveTrueAndStockGreaterThan(genre, 0);
         } else {
             products = productRepository.findByActiveTrueAndStockGreaterThan(0);

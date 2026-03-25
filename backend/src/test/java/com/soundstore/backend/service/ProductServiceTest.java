@@ -79,7 +79,7 @@ class ProductServiceTest {
 
         when(productRepository.findByActiveTrueAndStockGreaterThan(0)).thenReturn(List.of(product));
 
-        List<ProductResponseDto> result = productService.getCatalog(null);
+        List<ProductResponseDto> result = productService.getCatalog(null, null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).name()).isEqualTo("USB Salsa");
@@ -93,7 +93,7 @@ class ProductServiceTest {
         when(productRepository.findByGenreIgnoreCaseAndActiveTrueAndStockGreaterThan("Salsa", 0))
                 .thenReturn(List.of(product));
 
-        List<ProductResponseDto> result = productService.getCatalog("Salsa");
+        List<ProductResponseDto> result = productService.getCatalog("Salsa", null);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).genre()).isEqualTo("Salsa");
@@ -106,11 +106,51 @@ class ProductServiceTest {
 
         when(productRepository.findByActiveTrueAndStockGreaterThan(0)).thenReturn(List.of(product));
 
-        List<ProductResponseDto> result = productService.getCatalog("  ");
+        List<ProductResponseDto> result = productService.getCatalog("  ", null);
 
         assertThat(result).hasSize(1);
         verify(productRepository).findByActiveTrueAndStockGreaterThan(0);
         verify(productRepository, never()).findByGenreIgnoreCaseAndActiveTrueAndStockGreaterThan(anyString(), anyInt());
+    }
+
+    @Test
+    void getCatalog_conSearch_buscaPorNombreOGenero() {
+        User seller = buildSeller();
+        Product product = buildProduct(seller);
+
+        when(productRepository.searchByNameOrGenre("salsa")).thenReturn(List.of(product));
+
+        List<ProductResponseDto> result = productService.getCatalog(null, "salsa");
+
+        assertThat(result).hasSize(1);
+        verify(productRepository).searchByNameOrGenre("salsa");
+        verify(productRepository, never()).findByActiveTrueAndStockGreaterThan(anyInt());
+    }
+
+    @Test
+    void getCatalog_searchTienePrioridadSobreGenero() {
+        User seller = buildSeller();
+        Product product = buildProduct(seller);
+
+        when(productRepository.searchByNameOrGenre("usb")).thenReturn(List.of(product));
+
+        List<ProductResponseDto> result = productService.getCatalog("Salsa", "usb");
+
+        assertThat(result).hasSize(1);
+        verify(productRepository).searchByNameOrGenre("usb");
+        verify(productRepository, never()).findByGenreIgnoreCaseAndActiveTrueAndStockGreaterThan(anyString(), anyInt());
+    }
+
+    @Test
+    void getCatalog_searchTrimaEspacios() {
+        User seller = buildSeller();
+        Product product = buildProduct(seller);
+
+        when(productRepository.searchByNameOrGenre("rock")).thenReturn(List.of(product));
+
+        productService.getCatalog(null, "  rock  ");
+
+        verify(productRepository).searchByNameOrGenre("rock");
     }
 
     // ─── getById ─────────────────────────────────────────────────────────────
