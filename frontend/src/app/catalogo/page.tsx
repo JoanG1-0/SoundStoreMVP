@@ -40,7 +40,7 @@ export default async function CatalogoPage({
 
         {/* Cabecera */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Catalogo</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Catalogo</h1>
           <p className="text-gray-500 mt-1">
             {productos.length === 0
               ? 'No se encontraron productos'
@@ -50,7 +50,7 @@ export default async function CatalogoPage({
 
         {/* Barra de busqueda */}
         <form method="GET" action="/catalogo" className="mb-6">
-          <div className="flex gap-2 max-w-md">
+          <div className="flex gap-2 w-full sm:max-w-md">
             <input
               type="text"
               name="search"

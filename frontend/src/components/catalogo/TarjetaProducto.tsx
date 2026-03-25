@@ -21,7 +21,7 @@ export default function TarjetaProducto({ producto }: TarjetaProductoProps) {
             src={producto.imageUrl}
             alt={producto.name}
             fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
@@ -33,13 +33,13 @@ export default function TarjetaProducto({ producto }: TarjetaProductoProps) {
         )}
       </div>
 
-      <div className="flex flex-col flex-1 p-4 gap-1">
-        <span className="text-xs font-medium text-indigo-600 uppercase tracking-wide">{producto.genre}</span>
-        <h3 className="font-semibold text-gray-900 line-clamp-2 text-sm leading-snug">{producto.name}</h3>
-        <div className="mt-auto pt-3 flex items-center justify-between">
-          <span className="text-base font-bold text-gray-900">{formatearPrecio(producto.price)}</span>
+      <div className="flex flex-col flex-1 p-3 sm:p-4 gap-1">
+        <span className="text-[10px] sm:text-xs font-medium text-indigo-600 uppercase tracking-wide truncate">{producto.genre}</span>
+        <h3 className="font-semibold text-gray-900 line-clamp-2 text-xs sm:text-sm leading-snug">{producto.name}</h3>
+        <div className="mt-auto pt-2 sm:pt-3 flex items-end justify-between gap-1">
+          <span className="text-sm sm:text-base font-bold text-gray-900 leading-tight">{formatearPrecio(producto.price)}</span>
           {producto.stock <= 5 && (
-            <span className="text-xs text-amber-600 font-medium">Quedan {producto.stock}</span>
+            <span className="text-[10px] sm:text-xs text-amber-600 font-medium shrink-0">Quedan {producto.stock}</span>
           )}
         </div>
       </div>
