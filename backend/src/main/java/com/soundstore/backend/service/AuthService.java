@@ -1,11 +1,15 @@
 package com.soundstore.backend.service;
 
+import com.soundstore.backend.dto.auth.ForgotPasswordRequestDto;
 import com.soundstore.backend.dto.auth.LoginRequestDto;
 import com.soundstore.backend.dto.auth.LoginResponseDto;
 import com.soundstore.backend.dto.auth.RegisterRequestDto;
 import com.soundstore.backend.dto.auth.RegisterResponseDto;
+import com.soundstore.backend.dto.auth.ResetPasswordRequestDto;
 import com.soundstore.backend.exception.EmailAlreadyExistsException;
 import com.soundstore.backend.exception.InvalidTokenException;
+import com.soundstore.backend.exception.UserNotFoundException;
+import com.soundstore.backend.model.OtpType;
 import com.soundstore.backend.model.User;
 import com.soundstore.backend.model.UserRole;
 import com.soundstore.backend.repository.UserRepository;
@@ -29,6 +33,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsServiceImpl userDetailsService;
+    private final OtpService otpService;
 
     @Transactional
     public RegisterResponseDto register(RegisterRequestDto request) {
@@ -87,6 +92,28 @@ public class AuthService {
         } catch (JwtException e) {
             throw new InvalidTokenException("El token de refresco no es válido o ha expirado");
         }
+    }
+
+    public void forgotPassword(ForgotPasswordRequestDto request) {
+        String email = request.email().toLowerCase().trim();
+        // Fallo silencioso si el email no existe — previene enumeración de usuarios
+        if (!userRepository.existsByEmail(email)) {
+            return;
+        }
+        otpService.generateAndSend(email, OtpType.PASSWORD_RESET);
+    }
+
+    @Transactional
+    public void resetPassword(ResetPasswordRequestDto request) {
+        String email = request.email().toLowerCase().trim();
+
+        otpService.validate(email, request.otpCode(), OtpType.PASSWORD_RESET);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
+
+        user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        userRepository.save(user);
     }
 
     private RegisterResponseDto toRegisterResponseDto(User user) {
