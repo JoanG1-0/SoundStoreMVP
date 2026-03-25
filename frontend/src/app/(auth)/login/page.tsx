@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { api } from '@/lib/api'
+import { useAuth } from '@/context/AuthContext'
+import { Rol } from '@/types'
 
 interface LoginResponseDto {
   accessToken: string
@@ -36,6 +38,7 @@ function validate(data: FormFields): FormErrors {
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [form, setForm] = useState<FormFields>({ email: '', password: '' })
   const [errors, setErrors] = useState<FormErrors>({})
   const [serverError, setServerError] = useState('')
@@ -66,10 +69,8 @@ export default function LoginPage() {
         email: form.email.trim().toLowerCase(),
         password: form.password,
       })
-      localStorage.setItem('accessToken', response.accessToken)
-      localStorage.setItem('refreshToken', response.refreshToken)
-      localStorage.setItem('role', response.role)
-      router.push('/')
+      login({ accessToken: response.accessToken, refreshToken: response.refreshToken, role: response.role as Rol })
+      router.push('/catalogo')
     } catch (err: unknown) {
       const error = err as { status?: number }
       if (error.status === 401) {
