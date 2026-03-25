@@ -19,6 +19,18 @@ public class GlobalExceptionHandler {
         return Map.of("error", ex.getMessage());
     }
 
+    @ExceptionHandler(OtpInvalidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleOtpInvalid(OtpInvalidException ex) {
+        return Map.of("error", ex.getMessage());
+    }
+
+    @ExceptionHandler(OtpRateLimitException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public Map<String, String> handleOtpRateLimit(OtpRateLimitException ex) {
+        return Map.of("error", ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, Object> handleValidation(MethodArgumentNotValidException ex) {
