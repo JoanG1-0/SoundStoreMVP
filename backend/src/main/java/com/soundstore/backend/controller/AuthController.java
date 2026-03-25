@@ -7,6 +7,7 @@ import com.soundstore.backend.dto.auth.RefreshRequestDto;
 import com.soundstore.backend.dto.auth.RegisterRequestDto;
 import com.soundstore.backend.dto.auth.RegisterResponseDto;
 import com.soundstore.backend.dto.auth.ResetPasswordRequestDto;
+import com.soundstore.backend.dto.auth.VerifyEmailRequestDto;
 import com.soundstore.backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +37,12 @@ public class AuthController {
     @PostMapping("/refresh")
     public LoginResponseDto refresh(@Valid @RequestBody RefreshRequestDto request) {
         return authService.refresh(request.refreshToken());
+    }
+
+    @PostMapping("/verify-email")
+    public Map<String, String> verifyEmail(@Valid @RequestBody VerifyEmailRequestDto request) {
+        authService.verifyEmail(request);
+        return Map.of("mensaje", "Correo verificado correctamente.");
     }
 
     @PostMapping("/forgot-password")

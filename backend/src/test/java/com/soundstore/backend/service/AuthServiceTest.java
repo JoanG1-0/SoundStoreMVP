@@ -6,8 +6,10 @@ import com.soundstore.backend.dto.auth.LoginResponseDto;
 import com.soundstore.backend.dto.auth.RegisterRequestDto;
 import com.soundstore.backend.dto.auth.RegisterResponseDto;
 import com.soundstore.backend.dto.auth.ResetPasswordRequestDto;
+import com.soundstore.backend.dto.auth.VerifyEmailRequestDto;
 import com.soundstore.backend.exception.EmailAlreadyExistsException;
 import com.soundstore.backend.exception.OtpInvalidException;
+import com.soundstore.backend.exception.UserNotFoundException;
 import com.soundstore.backend.model.OtpType;
 import com.soundstore.backend.model.User;
 import com.soundstore.backend.model.UserRole;
@@ -238,6 +240,68 @@ class AuthServiceTest {
                 .when(otpService).validate("juan@test.com", "000000", OtpType.PASSWORD_RESET);
 
         assertThrows(OtpInvalidException.class, () -> authService.resetPassword(request));
+        verify(userRepository, never()).save(any());
+    }
+
+    // ─── Register envía OTP ──────────────────────────────────────────────────
+
+    @Test
+    void register_exitoso_enviaOtpDeRegistro() {
+        RegisterRequestDto request = new RegisterRequestDto(
+                "Juan Pérez", "juan@test.com", "pass1234", "3001234567");
+
+        when(userRepository.existsByEmail("juan@test.com")).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hashed");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.register(request);
+
+        verify(otpService).generateAndSend("juan@test.com", OtpType.REGISTRATION);
+    }
+
+    // ─── Verify Email ─────────────────────────────────────────────────────────
+
+    @Test
+    void verifyEmail_codigoValido_marcaEmailVerificado() {
+        VerifyEmailRequestDto request = new VerifyEmailRequestDto("juan@test.com", "123456");
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .email("juan@test.com")
+                .role(UserRole.BUYER)
+                .active(true)
+                .emailVerified(false)
+                .build();
+
+        doNothing().when(otpService).validate("juan@test.com", "123456", OtpType.REGISTRATION);
+        when(userRepository.findByEmail("juan@test.com")).thenReturn(Optional.of(user));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.verifyEmail(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().isEmailVerified()).isTrue();
+    }
+
+    @Test
+    void verifyEmail_codigoInvalido_lanzaOtpInvalidException() {
+        VerifyEmailRequestDto request = new VerifyEmailRequestDto("juan@test.com", "000000");
+
+        doThrow(new OtpInvalidException("El código OTP no es válido o ha expirado."))
+                .when(otpService).validate("juan@test.com", "000000", OtpType.REGISTRATION);
+
+        assertThrows(OtpInvalidException.class, () -> authService.verifyEmail(request));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void verifyEmail_usuarioNoExiste_lanzaUserNotFoundException() {
+        VerifyEmailRequestDto request = new VerifyEmailRequestDto("noexiste@test.com", "123456");
+
+        doNothing().when(otpService).validate("noexiste@test.com", "123456", OtpType.REGISTRATION);
+        when(userRepository.findByEmail("noexiste@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class, () -> authService.verifyEmail(request));
         verify(userRepository, never()).save(any());
     }
 
