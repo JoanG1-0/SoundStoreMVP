@@ -1,6 +1,8 @@
 package com.soundstore.backend.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,6 +30,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(OtpRateLimitException.class)
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     public Map<String, String> handleOtpRateLimit(OtpRateLimitException ex) {
+        return Map.of("error", ex.getMessage());
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Map<String, String> handleBadCredentials(BadCredentialsException ex) {
+        return Map.of("error", "Credenciales inválidas");
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Map<String, String> handleDisabled(DisabledException ex) {
+        return Map.of("error", "La cuenta está desactivada. Contacte al administrador.");
+    }
+
+    @ExceptionHandler(InvalidTokenException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Map<String, String> handleInvalidToken(InvalidTokenException ex) {
         return Map.of("error", ex.getMessage());
     }
 
