@@ -53,7 +53,7 @@ export default function PerfilPage() {
     const token = getToken();
     if (!token) return;
 
-    api.get<UserProfile>('/api/users/me', token)
+    api.get<UserProfile>('/users/me', token)
       .then((data) => {
         setPerfil(data);
         setForm({ fullName: data.fullName, phone: data.phone, address: data.address ?? '' });
@@ -85,7 +85,7 @@ export default function PerfilPage() {
     setGuardando(true);
     setServerError('');
     try {
-      const updated = await api.put<UserProfile>('/api/users/me', {
+      const updated = await api.put<UserProfile>('/users/me', {
         fullName: form.fullName.trim(),
         phone: form.phone.trim(),
         address: form.address.trim() || null,
