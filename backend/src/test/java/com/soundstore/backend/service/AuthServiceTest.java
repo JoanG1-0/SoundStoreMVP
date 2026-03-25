@@ -1,10 +1,14 @@
 package com.soundstore.backend.service;
 
+import com.soundstore.backend.dto.auth.ForgotPasswordRequestDto;
 import com.soundstore.backend.dto.auth.LoginRequestDto;
 import com.soundstore.backend.dto.auth.LoginResponseDto;
 import com.soundstore.backend.dto.auth.RegisterRequestDto;
 import com.soundstore.backend.dto.auth.RegisterResponseDto;
+import com.soundstore.backend.dto.auth.ResetPasswordRequestDto;
 import com.soundstore.backend.exception.EmailAlreadyExistsException;
+import com.soundstore.backend.exception.OtpInvalidException;
+import com.soundstore.backend.model.OtpType;
 import com.soundstore.backend.model.User;
 import com.soundstore.backend.model.UserRole;
 import com.soundstore.backend.repository.UserRepository;
@@ -30,6 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -39,6 +45,7 @@ class AuthServiceTest {
     @Mock private JwtService jwtService;
     @Mock private AuthenticationManager authenticationManager;
     @Mock private UserDetailsServiceImpl userDetailsService;
+    @Mock private OtpService otpService;
 
     @InjectMocks
     private AuthService authService;
@@ -169,6 +176,69 @@ class AuthServiceTest {
 
         assertThrows(BadCredentialsException.class, () -> authService.login(request));
         verify(jwtService, never()).generateAccessToken(any());
+    }
+
+    // ─── Forgot Password ─────────────────────────────────────────────────────
+
+    @Test
+    void forgotPassword_emailExistente_generaYEnviaOtp() {
+        ForgotPasswordRequestDto request = new ForgotPasswordRequestDto("juan@test.com");
+
+        when(userRepository.existsByEmail("juan@test.com")).thenReturn(true);
+
+        authService.forgotPassword(request);
+
+        verify(otpService).generateAndSend("juan@test.com", OtpType.PASSWORD_RESET);
+    }
+
+    @Test
+    void forgotPassword_emailNoExistente_noGeneraOtp() {
+        ForgotPasswordRequestDto request = new ForgotPasswordRequestDto("noexiste@test.com");
+
+        when(userRepository.existsByEmail("noexiste@test.com")).thenReturn(false);
+
+        authService.forgotPassword(request);
+
+        verify(otpService, never()).generateAndSend(anyString(), any());
+    }
+
+    // ─── Reset Password ──────────────────────────────────────────────────────
+
+    @Test
+    void resetPassword_otpValido_actualizaContrasenia() {
+        ResetPasswordRequestDto request = new ResetPasswordRequestDto(
+                "juan@test.com", "123456", "nuevaPass1");
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .email("juan@test.com")
+                .passwordHash("$2a$10$old_hash")
+                .role(UserRole.BUYER)
+                .active(true)
+                .build();
+
+        doNothing().when(otpService).validate("juan@test.com", "123456", OtpType.PASSWORD_RESET);
+        when(userRepository.findByEmail("juan@test.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("nuevaPass1")).thenReturn("$2a$10$new_hash");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        authService.resetPassword(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().getPasswordHash()).isEqualTo("$2a$10$new_hash");
+        assertThat(captor.getValue().getPasswordHash()).isNotEqualTo("$2a$10$old_hash");
+    }
+
+    @Test
+    void resetPassword_otpInvalido_lanzaExcepcion() {
+        ResetPasswordRequestDto request = new ResetPasswordRequestDto(
+                "juan@test.com", "000000", "nuevaPass1");
+
+        doThrow(new OtpInvalidException("El código OTP no es válido o ha expirado."))
+                .when(otpService).validate("juan@test.com", "000000", OtpType.PASSWORD_RESET);
+
+        assertThrows(OtpInvalidException.class, () -> authService.resetPassword(request));
+        verify(userRepository, never()).save(any());
     }
 
     @Test
