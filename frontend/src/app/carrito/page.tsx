@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCarrito } from '@/context/CarritoContext';
+import { useAuth } from '@/context/AuthContext';
+import { api } from '@/lib/api';
 import { TipoEntrega } from '@/types';
 
 const formatearPrecio = (precio: number) =>
@@ -18,10 +20,21 @@ interface AdvertenciaStock {
 
 export default function CarritoPage() {
   const { items, totalItems, totalPrecio, modificarCantidad, eliminar, vaciar } = useCarrito();
+  const { isAuthenticated, getToken } = useAuth();
   const [modalidad, setModalidad] = useState<TipoEntrega>('PICKUP');
   const [direccion, setDireccion] = useState('');
   const [advertencias, setAdvertencias] = useState<AdvertenciaStock[]>([]);
   const [validando, setValidando] = useState(false);
+
+  // Pre-rellenar dirección desde el perfil del usuario
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const token = getToken();
+    if (!token) return;
+    api.get<{ address: string | null }>('/users/me', token)
+      .then((data) => { if (data.address) setDireccion(data.address); })
+      .catch(() => {});
+  }, [isAuthenticated, getToken]);
 
   // RF-CR-05: Validar stock en tiempo real al montar la página (batch endpoint SS-29)
   useEffect(() => {
