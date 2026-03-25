@@ -6,6 +6,7 @@ import com.soundstore.backend.dto.auth.LoginResponseDto;
 import com.soundstore.backend.dto.auth.RegisterRequestDto;
 import com.soundstore.backend.dto.auth.RegisterResponseDto;
 import com.soundstore.backend.dto.auth.ResetPasswordRequestDto;
+import com.soundstore.backend.dto.auth.VerifyEmailRequestDto;
 import com.soundstore.backend.exception.EmailAlreadyExistsException;
 import com.soundstore.backend.exception.InvalidTokenException;
 import com.soundstore.backend.exception.UserNotFoundException;
@@ -54,7 +55,21 @@ public class AuthService {
                 .build();
 
         User saved = userRepository.save(user);
+        otpService.generateAndSend(email, OtpType.REGISTRATION);
         return toRegisterResponseDto(saved);
+    }
+
+    @Transactional
+    public void verifyEmail(VerifyEmailRequestDto request) {
+        String email = request.email().toLowerCase().trim();
+
+        otpService.validate(email, request.code(), OtpType.REGISTRATION);
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
+
+        user.setEmailVerified(true);
+        userRepository.save(user);
     }
 
     public LoginResponseDto login(LoginRequestDto request) {
