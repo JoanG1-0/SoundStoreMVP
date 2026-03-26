@@ -31,6 +31,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final OrderEmailService orderEmailService;
 
     @Transactional
     public OrderResponseDto create(CreateOrderRequestDto request, String userEmail) {
@@ -97,6 +98,7 @@ public class OrderService {
         }
 
         Order saved = orderRepository.save(order);
+        orderEmailService.notificarCambioEstado(saved);
         return toDto(saved);
     }
 
@@ -119,7 +121,9 @@ public class OrderService {
         }
 
         order.setStatus(newStatus);
-        return toDto(orderRepository.save(order));
+        Order saved = orderRepository.save(order);
+        orderEmailService.notificarCambioEstado(saved);
+        return toDto(saved);
     }
 
     private void validarTransicion(Order order, OrderStatus newStatus) {

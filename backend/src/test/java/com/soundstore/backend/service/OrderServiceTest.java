@@ -38,6 +38,7 @@ class OrderServiceTest {
     @Mock private OrderRepository orderRepository;
     @Mock private ProductRepository productRepository;
     @Mock private UserRepository userRepository;
+    @Mock private OrderEmailService orderEmailService;
 
     @InjectMocks
     private OrderService orderService;
