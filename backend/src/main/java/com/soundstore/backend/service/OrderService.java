@@ -103,6 +103,12 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public List<OrderResponseDto> listActivos() {
+        return orderRepository.findActivos(List.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED))
+                .stream().map(this::toDto).toList();
+    }
+
+    @Transactional(readOnly = true)
     public OrderResponseDto getById(UUID id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException("Pedido no encontrado"));

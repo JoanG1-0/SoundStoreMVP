@@ -30,6 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -312,6 +314,37 @@ class OrderServiceTest {
         when(orderRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(OrderNotFoundException.class, () -> orderService.getById(id));
+    }
+
+    // ---------------------------------------------------------------
+    // listActivos (RF-PE-06)
+    // ---------------------------------------------------------------
+
+    @Test
+    void listActivos_retornasoloEstadosActivos() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+
+        Order pending   = buildSavedOrder(buyer, product, 1);
+        Order confirmed = buildSavedOrder(buyer, product, 1);
+        confirmed.setStatus(OrderStatus.CONFIRMED);
+
+        when(orderRepository.findActivos(anyList())).thenReturn(List.of(pending, confirmed));
+
+        List<OrderResponseDto> result = orderService.listActivos();
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(OrderResponseDto::status)
+                .containsExactlyInAnyOrder(OrderStatus.PENDING, OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void listActivos_sinPedidos_retornaListaVacia() {
+        when(orderRepository.findActivos(anyList())).thenReturn(List.of());
+
+        List<OrderResponseDto> result = orderService.listActivos();
+
+        assertThat(result).isEmpty();
     }
 
     // ---------------------------------------------------------------

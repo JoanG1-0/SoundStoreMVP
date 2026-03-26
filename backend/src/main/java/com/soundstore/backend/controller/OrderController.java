@@ -3,6 +3,8 @@ package com.soundstore.backend.controller;
 import com.soundstore.backend.dto.order.CreateOrderRequestDto;
 import com.soundstore.backend.dto.order.OrderResponseDto;
 import com.soundstore.backend.dto.order.UpdateOrderStatusRequestDto;
+
+import java.util.List;
 import com.soundstore.backend.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,11 @@ import java.util.UUID;
 public class OrderController {
 
     private final OrderService orderService;
+
+    @GetMapping
+    public List<OrderResponseDto> listActivos() {
+        return orderService.listActivos();
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
