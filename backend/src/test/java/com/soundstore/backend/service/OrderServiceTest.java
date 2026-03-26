@@ -6,6 +6,7 @@ import com.soundstore.backend.dto.order.OrderResponseDto;
 import com.soundstore.backend.exception.OrderNotFoundException;
 import com.soundstore.backend.exception.ProductNotFoundException;
 import com.soundstore.backend.exception.StockInsuficienteException;
+import com.soundstore.backend.exception.TransicionEstadoInvalidaException;
 import com.soundstore.backend.exception.UserNotFoundException;
 import com.soundstore.backend.model.*;
 import com.soundstore.backend.repository.OrderRepository;
@@ -310,5 +311,203 @@ class OrderServiceTest {
         when(orderRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThrows(OrderNotFoundException.class, () -> orderService.getById(id));
+    }
+
+    // ---------------------------------------------------------------
+    // updateStatus — transiciones válidas
+    // ---------------------------------------------------------------
+
+    @Test
+    void updateStatus_pendingAConfirmed_transicionValida() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.PENDING);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderResponseDto result = orderService.updateStatus(order.getId(), OrderStatus.CONFIRMED);
+
+        assertThat(result.status()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void updateStatus_confirmedAPreparing_transicionValida() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.CONFIRMED);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderResponseDto result = orderService.updateStatus(order.getId(), OrderStatus.PREPARING);
+
+        assertThat(result.status()).isEqualTo(OrderStatus.PREPARING);
+    }
+
+    @Test
+    void updateStatus_preparingAOnTheWay_soloDelivery() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.PREPARING);
+        order.setDeliveryType(DeliveryType.DELIVERY);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderResponseDto result = orderService.updateStatus(order.getId(), OrderStatus.ON_THE_WAY);
+
+        assertThat(result.status()).isEqualTo(OrderStatus.ON_THE_WAY);
+    }
+
+    @Test
+    void updateStatus_preparingAReadyPickup_soloPickup() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.PREPARING);
+        order.setDeliveryType(DeliveryType.PICKUP);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderResponseDto result = orderService.updateStatus(order.getId(), OrderStatus.READY_PICKUP);
+
+        assertThat(result.status()).isEqualTo(OrderStatus.READY_PICKUP);
+    }
+
+    @Test
+    void updateStatus_onTheWayADelivered_transicionValida() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.ON_THE_WAY);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        OrderResponseDto result = orderService.updateStatus(order.getId(), OrderStatus.DELIVERED);
+
+        assertThat(result.status()).isEqualTo(OrderStatus.DELIVERED);
+    }
+
+    // ---------------------------------------------------------------
+    // updateStatus — cancelación y restitución de stock (RF-PE-08)
+    // ---------------------------------------------------------------
+
+    @Test
+    void updateStatus_cancelarDesdePending_restituyeStock() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(3);
+        Order order = buildSavedOrder(buyer, product, 2);
+        order.setStatus(OrderStatus.PENDING);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        orderService.updateStatus(order.getId(), OrderStatus.CANCELLED);
+
+        assertThat(product.getStock()).isEqualTo(5);
+        verify(productRepository).save(product);
+    }
+
+    @Test
+    void updateStatus_cancelarDesdeConfirmed_restituyeStock() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(0);
+        Order order = buildSavedOrder(buyer, product, 3);
+        order.setStatus(OrderStatus.CONFIRMED);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+        when(productRepository.findById(product.getId())).thenReturn(Optional.of(product));
+        when(orderRepository.save(any(Order.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        orderService.updateStatus(order.getId(), OrderStatus.CANCELLED);
+
+        assertThat(product.getStock()).isEqualTo(3);
+    }
+
+    // ---------------------------------------------------------------
+    // updateStatus — transiciones inválidas
+    // ---------------------------------------------------------------
+
+    @Test
+    void updateStatus_pendingDirectoADelivered_lanzaExcepcion() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.PENDING);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+
+        assertThrows(TransicionEstadoInvalidaException.class,
+                () -> orderService.updateStatus(order.getId(), OrderStatus.DELIVERED));
+    }
+
+    @Test
+    void updateStatus_deliveredACualquierEstado_lanzaExcepcion() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.DELIVERED);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+
+        assertThrows(TransicionEstadoInvalidaException.class,
+                () -> orderService.updateStatus(order.getId(), OrderStatus.CANCELLED));
+    }
+
+    @Test
+    void updateStatus_cancelledACualquierEstado_lanzaExcepcion() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.CANCELLED);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+
+        assertThrows(TransicionEstadoInvalidaException.class,
+                () -> orderService.updateStatus(order.getId(), OrderStatus.CONFIRMED));
+    }
+
+    @Test
+    void updateStatus_preparingAOnTheWayConPickup_lanzaExcepcion() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.PREPARING);
+        order.setDeliveryType(DeliveryType.PICKUP);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+
+        assertThrows(TransicionEstadoInvalidaException.class,
+                () -> orderService.updateStatus(order.getId(), OrderStatus.ON_THE_WAY));
+    }
+
+    @Test
+    void updateStatus_preparingAReadyPickupConDelivery_lanzaExcepcion() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+        Order order = buildSavedOrder(buyer, product, 1);
+        order.setStatus(OrderStatus.PREPARING);
+        order.setDeliveryType(DeliveryType.DELIVERY);
+
+        when(orderRepository.findById(order.getId())).thenReturn(Optional.of(order));
+
+        assertThrows(TransicionEstadoInvalidaException.class,
+                () -> orderService.updateStatus(order.getId(), OrderStatus.READY_PICKUP));
+    }
+
+    @Test
+    void updateStatus_pedidoNoExistente_lanzaOrderNotFoundException() {
+        UUID id = UUID.randomUUID();
+        when(orderRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(OrderNotFoundException.class,
+                () -> orderService.updateStatus(id, OrderStatus.CONFIRMED));
     }
 }

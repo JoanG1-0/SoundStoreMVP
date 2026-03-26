@@ -63,6 +63,12 @@ public class GlobalExceptionHandler {
         return Map.of("error", ex.getMessage());
     }
 
+    @ExceptionHandler(TransicionEstadoInvalidaException.class)
+    @ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+    public Map<String, String> handleTransicionInvalida(TransicionEstadoInvalidaException ex) {
+        return Map.of("error", ex.getMessage());
+    }
+
     @ExceptionHandler(ImageUploadException.class)
     @ResponseStatus(HttpStatus.BAD_GATEWAY)
     public Map<String, String> handleImageUpload(ImageUploadException ex) {

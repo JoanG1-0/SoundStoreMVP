@@ -7,6 +7,7 @@ import com.soundstore.backend.dto.order.OrderResponseDto;
 import com.soundstore.backend.exception.OrderNotFoundException;
 import com.soundstore.backend.exception.ProductNotFoundException;
 import com.soundstore.backend.exception.StockInsuficienteException;
+import com.soundstore.backend.exception.TransicionEstadoInvalidaException;
 import com.soundstore.backend.exception.UserNotFoundException;
 import com.soundstore.backend.model.*;
 import com.soundstore.backend.repository.OrderRepository;
@@ -20,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -103,6 +105,52 @@ public class OrderService {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new OrderNotFoundException("Pedido no encontrado"));
         return toDto(order);
+    }
+
+    @Transactional
+    public OrderResponseDto updateStatus(UUID id, OrderStatus newStatus) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new OrderNotFoundException("Pedido no encontrado"));
+
+        validarTransicion(order, newStatus);
+
+        if (newStatus == OrderStatus.CANCELLED) {
+            restituirStock(order);
+        }
+
+        order.setStatus(newStatus);
+        return toDto(orderRepository.save(order));
+    }
+
+    private void validarTransicion(Order order, OrderStatus newStatus) {
+        OrderStatus current = order.getStatus();
+        DeliveryType delivery = order.getDeliveryType();
+
+        boolean valida = switch (current) {
+            case PENDING    -> newStatus == OrderStatus.CONFIRMED
+                            || newStatus == OrderStatus.CANCELLED;
+            case CONFIRMED  -> newStatus == OrderStatus.PREPARING
+                            || newStatus == OrderStatus.CANCELLED;
+            case PREPARING  -> (newStatus == OrderStatus.ON_THE_WAY   && delivery == DeliveryType.DELIVERY)
+                            || (newStatus == OrderStatus.READY_PICKUP  && delivery == DeliveryType.PICKUP);
+            case ON_THE_WAY    -> newStatus == OrderStatus.DELIVERED;
+            case READY_PICKUP  -> newStatus == OrderStatus.DELIVERED;
+            default         -> false;
+        };
+
+        if (!valida) {
+            throw new TransicionEstadoInvalidaException(
+                    "Transición no permitida: " + current + " → " + newStatus);
+        }
+    }
+
+    private void restituirStock(Order order) {
+        for (OrderItem item : order.getItems()) {
+            Product product = productRepository.findById(item.getProduct().getId())
+                    .orElseThrow(() -> new ProductNotFoundException("Producto no encontrado al restituir stock"));
+            product.setStock(product.getStock() + item.getQuantity());
+            productRepository.save(product);
+        }
     }
 
     private String generateOrderNumber() {
