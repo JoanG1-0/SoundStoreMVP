@@ -16,4 +16,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     @Query("SELECT o FROM Order o WHERE o.status NOT IN :excluidos ORDER BY o.createdAt DESC")
     List<Order> findActivos(@Param("excluidos") List<OrderStatus> excluidos);
+
+    List<Order> findByUserIdOrderByCreatedAtDesc(UUID userId);
 }

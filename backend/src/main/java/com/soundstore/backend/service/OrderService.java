@@ -103,6 +103,14 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public List<OrderResponseDto> misPedidos(String userEmail) {
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new UserNotFoundException("Usuario no encontrado"));
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(user.getId())
+                .stream().map(this::toDto).toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<OrderResponseDto> listActivos() {
         return orderRepository.findActivos(List.of(OrderStatus.DELIVERED, OrderStatus.CANCELLED))
                 .stream().map(this::toDto).toList();

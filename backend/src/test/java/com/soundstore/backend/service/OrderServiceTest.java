@@ -348,6 +348,49 @@ class OrderServiceTest {
     }
 
     // ---------------------------------------------------------------
+    // misPedidos (RF-PE-05)
+    // ---------------------------------------------------------------
+
+    @Test
+    void misPedidos_retornaHistorialDelComprador() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+
+        Order o1 = buildSavedOrder(buyer, product, 1);
+        Order o2 = buildSavedOrder(buyer, product, 2);
+        o2.setStatus(OrderStatus.CONFIRMED);
+
+        when(userRepository.findByEmail("comprador@test.com")).thenReturn(Optional.of(buyer));
+        when(orderRepository.findByUserIdOrderByCreatedAtDesc(buyer.getId()))
+                .thenReturn(List.of(o1, o2));
+
+        List<OrderResponseDto> result = orderService.misPedidos("comprador@test.com");
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(OrderResponseDto::userId)
+                .containsOnly(buyer.getId());
+    }
+
+    @Test
+    void misPedidos_sinPedidos_retornaListaVacia() {
+        User buyer = buildBuyer();
+        when(userRepository.findByEmail("comprador@test.com")).thenReturn(Optional.of(buyer));
+        when(orderRepository.findByUserIdOrderByCreatedAtDesc(buyer.getId())).thenReturn(List.of());
+
+        List<OrderResponseDto> result = orderService.misPedidos("comprador@test.com");
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void misPedidos_usuarioNoExiste_lanzaUserNotFoundException() {
+        when(userRepository.findByEmail("noexiste@test.com")).thenReturn(Optional.empty());
+
+        assertThrows(UserNotFoundException.class,
+                () -> orderService.misPedidos("noexiste@test.com"));
+    }
+
+    // ---------------------------------------------------------------
     // updateStatus — transiciones válidas
     // ---------------------------------------------------------------
 

@@ -27,6 +27,11 @@ public class OrderController {
         return orderService.listActivos();
     }
 
+    @GetMapping("/mis-pedidos")
+    public List<OrderResponseDto> misPedidos(@AuthenticationPrincipal UserDetails userDetails) {
+        return orderService.misPedidos(userDetails.getUsername());
+    }
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public OrderResponseDto create(
