@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCarrito } from '@/context/CarritoContext';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
-import { TipoEntrega } from '@/types';
+import { Pedido, TipoEntrega } from '@/types';
 
 const formatearPrecio = (precio: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(precio);
@@ -21,10 +22,13 @@ interface AdvertenciaStock {
 export default function CarritoPage() {
   const { items, totalItems, totalPrecio, modificarCantidad, eliminar, vaciar } = useCarrito();
   const { isAuthenticated, getToken } = useAuth();
+  const router = useRouter();
   const [modalidad, setModalidad] = useState<TipoEntrega>('PICKUP');
   const [direccion, setDireccion] = useState('');
   const [advertencias, setAdvertencias] = useState<AdvertenciaStock[]>([]);
   const [validando, setValidando] = useState(false);
+  const [confirmando, setConfirmando] = useState(false);
+  const [errorConfirmar, setErrorConfirmar] = useState<string | null>(null);
 
   // Pre-rellenar dirección desde el perfil del usuario
   useEffect(() => {
@@ -100,7 +104,38 @@ export default function CarritoPage() {
     );
   }
 
-  const puedeConfirmar = modalidad === 'PICKUP' || (modalidad === 'DELIVERY' && direccion.trim().length > 0);
+  const puedeConfirmar =
+    !confirmando &&
+    (modalidad === 'PICKUP' || (modalidad === 'DELIVERY' && direccion.trim().length > 0));
+
+  const confirmarPedido = async () => {
+    const token = getToken();
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+    setConfirmando(true);
+    setErrorConfirmar(null);
+    try {
+      const pedido = await api.post<Pedido>(
+        '/api/orders',
+        {
+          items: items.map((i) => ({ productId: i.producto.id, quantity: i.cantidad })),
+          deliveryType: modalidad,
+          deliveryAddress: modalidad === 'DELIVERY' ? direccion.trim() : undefined,
+        },
+        token
+      );
+      vaciar();
+      sessionStorage.setItem('pedido_confirmacion', JSON.stringify(pedido));
+      router.push('/checkout');
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message ?? 'Error al confirmar el pedido';
+      setErrorConfirmar(msg);
+    } finally {
+      setConfirmando(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gray-50">
@@ -276,11 +311,16 @@ export default function CarritoPage() {
                 <span>{formatearPrecio(totalPrecio)}</span>
               </div>
 
+              {errorConfirmar && (
+                <p className="mt-3 text-xs text-red-600 text-center">{errorConfirmar}</p>
+              )}
+
               <button
+                onClick={confirmarPedido}
                 disabled={!puedeConfirmar}
                 className="mt-4 w-full py-3 px-6 rounded-xl font-semibold text-sm transition-colors bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
               >
-                Confirmar pedido
+                {confirmando ? 'Procesando...' : 'Confirmar pedido'}
               </button>
 
               {modalidad === 'DELIVERY' && !direccion.trim() && (
