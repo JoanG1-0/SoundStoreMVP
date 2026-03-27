@@ -1,5 +1,6 @@
 package com.soundstore.backend.controller;
 
+import com.soundstore.backend.dto.user.ChangePasswordRequestDto;
 import com.soundstore.backend.dto.user.UpdateProfileRequestDto;
 import com.soundstore.backend.dto.user.UserProfileResponseDto;
 import com.soundstore.backend.service.UserService;
@@ -7,6 +8,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -26,5 +28,13 @@ public class UserController {
             @AuthenticationPrincipal UserDetails userDetails,
             @Valid @RequestBody UpdateProfileRequestDto request) {
         return userService.updateProfile(userDetails.getUsername(), request);
+    }
+
+    @PatchMapping("/me/password")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void changePassword(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody ChangePasswordRequestDto request) {
+        userService.changePassword(userDetails.getUsername(), request);
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -49,10 +50,17 @@ public class AdminService {
                 .role(role)
                 .active(true)
                 .emailVerified(true)
+                .mustChangePassword(true)
                 .build();
 
         User saved = userRepository.save(user);
         return toDto(saved);
+    }
+
+    public List<UserResponseDto> listUsers() {
+        return userRepository.findAll().stream()
+                .map(this::toDto)
+                .toList();
     }
 
     @Transactional
@@ -73,7 +81,8 @@ public class AdminService {
                 user.getPhone(),
                 user.getRole().name(),
                 user.isActive(),
-                user.isEmailVerified()
+                user.isEmailVerified(),
+                user.isMustChangePassword()
         );
     }
 }

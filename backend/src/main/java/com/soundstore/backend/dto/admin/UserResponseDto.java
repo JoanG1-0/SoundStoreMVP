@@ -9,5 +9,6 @@ public record UserResponseDto(
         String phone,
         String role,
         boolean active,
-        boolean emailVerified
+        boolean emailVerified,
+        boolean mustChangePassword
 ) {}

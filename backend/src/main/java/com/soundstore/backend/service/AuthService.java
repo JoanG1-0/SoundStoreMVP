@@ -86,7 +86,7 @@ public class AuthService {
         String accessToken = jwtService.generateAccessToken(userDetails);
         String refreshToken = jwtService.generateRefreshToken(userDetails);
 
-        return new LoginResponseDto(accessToken, refreshToken, user.getRole().name());
+        return new LoginResponseDto(accessToken, refreshToken, user.getRole().name(), user.isMustChangePassword());
     }
 
     public LoginResponseDto refresh(String refreshToken) {
@@ -102,7 +102,7 @@ public class AuthService {
                     .orElseThrow(() -> new InvalidTokenException("Usuario no encontrado"));
 
             String newAccessToken = jwtService.generateAccessToken(userDetails);
-            return new LoginResponseDto(newAccessToken, refreshToken, user.getRole().name());
+            return new LoginResponseDto(newAccessToken, refreshToken, user.getRole().name(), user.isMustChangePassword());
 
         } catch (JwtException e) {
             throw new InvalidTokenException("El token de refresco no es válido o ha expirado");

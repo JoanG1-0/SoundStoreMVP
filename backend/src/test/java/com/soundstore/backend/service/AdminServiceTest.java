@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,6 +55,7 @@ class AdminServiceTest {
                     .role(u.getRole())
                     .active(u.isActive())
                     .emailVerified(u.isEmailVerified())
+                    .mustChangePassword(u.isMustChangePassword())
                     .build();
         });
 
@@ -63,6 +65,7 @@ class AdminServiceTest {
         assertThat(response.role()).isEqualTo("SELLER");
         assertThat(response.active()).isTrue();
         assertThat(response.emailVerified()).isTrue();
+        assertThat(response.mustChangePassword()).isTrue();
     }
 
     @Test
@@ -83,12 +86,14 @@ class AdminServiceTest {
                     .role(u.getRole())
                     .active(u.isActive())
                     .emailVerified(u.isEmailVerified())
+                    .mustChangePassword(u.isMustChangePassword())
                     .build();
         });
 
         UserResponseDto response = adminService.createUser(request);
 
         assertThat(response.role()).isEqualTo("ADMIN");
+        assertThat(response.mustChangePassword()).isTrue();
     }
 
     @Test
@@ -121,6 +126,22 @@ class AdminServiceTest {
     }
 
     @Test
+    void createUser_mustChangePasswordEsTrue() {
+        CreateUserRequestDto request = new CreateUserRequestDto(
+                "Ana", "ana@test.com", "pass1234", "3001234567", "SELLER");
+
+        when(userRepository.existsByEmail(any())).thenReturn(false);
+        when(passwordEncoder.encode(any())).thenReturn("$2a$10$hashed");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        adminService.createUser(request);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertThat(captor.getValue().isMustChangePassword()).isTrue();
+    }
+
+    @Test
     void createUser_emailSeNormalizaAMinusculas() {
         CreateUserRequestDto request = new CreateUserRequestDto(
                 "Ana", "ANA@TEST.COM", "pass1234", "3001234567", "SELLER");
@@ -150,6 +171,33 @@ class AdminServiceTest {
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().isEmailVerified()).isTrue();
+    }
+
+    // ─── listUsers ────────────────────────────────────────────────────────────
+
+    @Test
+    void listUsers_retornaTodosLosUsuarios() {
+        User u1 = User.builder().id(UUID.randomUUID()).fullName("Ana").email("ana@test.com")
+                .phone("3001234567").role(UserRole.SELLER).active(true).emailVerified(true).build();
+        User u2 = User.builder().id(UUID.randomUUID()).fullName("Carlos").email("carlos@test.com")
+                .phone("3007654321").role(UserRole.ADMIN).active(true).emailVerified(true).build();
+
+        when(userRepository.findAll()).thenReturn(List.of(u1, u2));
+
+        List<UserResponseDto> result = adminService.listUsers();
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).email()).isEqualTo("ana@test.com");
+        assertThat(result.get(1).email()).isEqualTo("carlos@test.com");
+    }
+
+    @Test
+    void listUsers_listaVacia_retornaListaVacia() {
+        when(userRepository.findAll()).thenReturn(List.of());
+
+        List<UserResponseDto> result = adminService.listUsers();
+
+        assertThat(result).isEmpty();
     }
 
     // ─── toggleStatus ─────────────────────────────────────────────────────────

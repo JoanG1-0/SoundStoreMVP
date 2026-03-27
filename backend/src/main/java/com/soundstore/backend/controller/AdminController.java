@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -17,6 +18,11 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+
+    @GetMapping
+    public List<UserResponseDto> listUsers() {
+        return adminService.listUsers();
+    }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
