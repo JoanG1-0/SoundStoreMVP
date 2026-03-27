@@ -18,4 +18,15 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findActivos(@Param("excluidos") List<OrderStatus> excluidos);
 
     List<Order> findByUserIdOrderByCreatedAtDesc(UUID userId);
+
+    @Query(value = "SELECT COUNT(*) FROM orders WHERE created_at::date = CURRENT_DATE", nativeQuery = true)
+    long countToday();
+
+    long countByStatus(OrderStatus status);
+
+    @Query(value = "SELECT COALESCE(SUM(total), 0) FROM orders " +
+                   "WHERE EXTRACT(YEAR FROM created_at) = :year " +
+                   "AND EXTRACT(MONTH FROM created_at) = :month " +
+                   "AND status != 'CANCELLED'", nativeQuery = true)
+    java.math.BigDecimal sumVentasMes(@Param("year") int year, @Param("month") int month);
 }

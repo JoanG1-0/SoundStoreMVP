@@ -18,4 +18,6 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
            "AND (LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
            "OR LOWER(p.genre) LIKE LOWER(CONCAT('%', :search, '%')))")
     List<Product> searchByNameOrGenre(@Param("search") String search);
+
+    long countByActiveTrueAndStockLessThan(int stock);
 }
