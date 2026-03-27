@@ -34,7 +34,7 @@ const colorEstado: Record<EstadoPedido, string> = {
 };
 
 export default function PedidosPage() {
-  const { isAuthenticated, getToken } = useAuth();
+  const { isAuthenticated, getToken, role } = useAuth();
   const router = useRouter();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -45,6 +45,14 @@ export default function PedidosPage() {
       router.replace('/login');
       return;
     }
+    if (role === 'ADMIN') {
+      router.replace('/admin/pedidos');
+      return;
+    }
+    if (role === 'SELLER') {
+      router.replace('/vendedor/pedidos');
+      return;
+    }
     const token = getToken();
     if (!token) return;
 
@@ -52,7 +60,7 @@ export default function PedidosPage() {
       .then(setPedidos)
       .catch(() => setError('No se pudo cargar el historial de pedidos'))
       .finally(() => setCargando(false));
-  }, [isAuthenticated, getToken, router]);
+  }, [isAuthenticated, getToken, role, router]);
 
   if (cargando) {
     return (
