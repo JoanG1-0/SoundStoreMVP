@@ -53,8 +53,13 @@ public class OtpService {
                 .build();
 
         otpCodeRepository.save(otp);
-        sendEmail(email, code, type);
-        log.info("OTP generado y enviado a: {} tipo: {}", email, type);
+
+        try {
+            sendEmail(email, code, type);
+            log.info("OTP generado y enviado a: {} tipo: {}", email, type);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar el correo OTP a {} — {}. El código fue guardado.", email, e.getMessage());
+        }
     }
 
     @Transactional
