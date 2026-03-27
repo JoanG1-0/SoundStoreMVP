@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,6 +24,13 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     long countToday();
 
     long countByStatus(OrderStatus status);
+
+    @Query("SELECT o FROM Order o JOIN FETCH o.user " +
+           "WHERE o.createdAt >= :desde AND o.createdAt <= :hasta " +
+           "AND o.status <> com.soundstore.backend.model.OrderStatus.CANCELLED " +
+           "ORDER BY o.createdAt ASC")
+    List<Order> findParaReporte(@Param("desde") LocalDateTime desde,
+                                @Param("hasta") LocalDateTime hasta);
 
     @Query(value = "SELECT COALESCE(SUM(total), 0) FROM orders " +
                    "WHERE EXTRACT(YEAR FROM created_at) = :year " +
