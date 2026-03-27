@@ -27,6 +27,13 @@ public class ProductService {
     private final CloudinaryService cloudinaryService;
 
     @Transactional(readOnly = true)
+    public List<ProductResponseDto> getAllForManagement() {
+        return productRepository.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<ProductResponseDto> getCatalog(String genre, String search) {
         List<Product> products;
         if (search != null && !search.isBlank()) {

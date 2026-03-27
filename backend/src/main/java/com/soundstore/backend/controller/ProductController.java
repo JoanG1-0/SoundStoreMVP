@@ -24,6 +24,11 @@ public class ProductController {
 
     private final ProductService productService;
 
+    @GetMapping("/gestion")
+    public List<ProductResponseDto> getAllForManagement() {
+        return productService.getAllForManagement();
+    }
+
     @GetMapping
     public List<ProductResponseDto> getCatalog(
             @RequestParam(required = false) String genre,
