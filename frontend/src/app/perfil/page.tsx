@@ -33,6 +33,11 @@ function validate(data: FormFields): FormErrors {
   return errors;
 }
 
+interface PasswordForm {
+  currentPassword: string;
+  newPassword: string;
+}
+
 export default function PerfilPage() {
   const router = useRouter();
   const { isAuthenticated, getToken } = useAuth();
@@ -44,6 +49,11 @@ export default function PerfilPage() {
   const [guardando, setGuardando] = useState(false);
   const [exito, setExito] = useState(false);
   const [cargando, setCargando] = useState(true);
+
+  const [pwForm, setPwForm] = useState<PasswordForm>({ currentPassword: '', newPassword: '' });
+  const [pwError, setPwError] = useState('');
+  const [pwExito, setPwExito] = useState(false);
+  const [pwGuardando, setPwGuardando] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -99,6 +109,36 @@ export default function PerfilPage() {
       setServerError('No se pudieron guardar los cambios. Intenta de nuevo.');
     } finally {
       setGuardando(false);
+    }
+  }
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    if (!pwForm.currentPassword || !pwForm.newPassword) {
+      setPwError('Completa ambos campos');
+      return;
+    }
+    if (pwForm.newPassword.length < 8) {
+      setPwError('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    const token = getToken();
+    if (!token) return;
+    setPwGuardando(true);
+    setPwError('');
+    try {
+      await api.patch('/users/me/password', {
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
+      }, token);
+      setPwForm({ currentPassword: '', newPassword: '' });
+      setPwExito(true);
+      setTimeout(() => setPwExito(false), 3000);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      setPwError(e?.message ?? 'No se pudo cambiar la contraseña');
+    } finally {
+      setPwGuardando(false);
     }
   }
 
@@ -219,6 +259,53 @@ export default function PerfilPage() {
               </div>
             </form>
           )}
+        </div>
+
+        {/* Cambiar contraseña */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4 mt-4">
+          <h2 className="font-semibold text-gray-900">Cambiar contraseña</h2>
+
+          {pwExito && (
+            <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-sm text-green-700">
+              Contraseña actualizada correctamente.
+            </div>
+          )}
+          {pwError && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+              {pwError}
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordChange} noValidate className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña actual</label>
+              <input
+                type="password"
+                value={pwForm.currentPassword}
+                onChange={e => { setPwForm(f => ({ ...f, currentPassword: e.target.value })); setPwError(''); }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                autoComplete="current-password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
+              <input
+                type="password"
+                value={pwForm.newPassword}
+                onChange={e => { setPwForm(f => ({ ...f, newPassword: e.target.value })); setPwError(''); }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500 transition"
+                autoComplete="new-password"
+                placeholder="Mínimo 8 caracteres"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={pwGuardando}
+              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition disabled:opacity-50"
+            >
+              {pwGuardando ? 'Guardando...' : 'Actualizar contraseña'}
+            </button>
+          </form>
         </div>
 
         <div className="mt-4 text-center">

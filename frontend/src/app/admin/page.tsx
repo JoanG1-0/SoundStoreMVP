@@ -43,6 +43,14 @@ export default function AdminDashboardPage() {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const hoyIso = new Date().toISOString().slice(0, 10);
+  const primeroDeMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    .toISOString().slice(0, 10);
+  const [reporteDesde, setReporteDesde] = useState(primeroDeMes);
+  const [reporteHasta, setReporteHasta] = useState(hoyIso);
+  const [descargando, setDescargando] = useState(false);
+  const [errorReporte, setErrorReporte] = useState<string | null>(null);
+
   useEffect(() => {
     if (!isAuthenticated) {
       router.replace('/login');
@@ -72,6 +80,28 @@ export default function AdminDashboardPage() {
       </main>
     );
   }
+
+  const descargarReporte = async () => {
+    const token = getToken();
+    if (!token) return;
+    if (reporteHasta < reporteDesde) {
+      setErrorReporte('La fecha "hasta" no puede ser anterior a "desde"');
+      return;
+    }
+    setDescargando(true);
+    setErrorReporte(null);
+    try {
+      await api.downloadCsv(
+        `/admin/reportes/ventas?desde=${reporteDesde}&hasta=${reporteHasta}`,
+        `reporte-ventas-${reporteDesde}-${reporteHasta}.csv`,
+        token,
+      );
+    } catch {
+      setErrorReporte('No se pudo generar el reporte. Intenta de nuevo.');
+    } finally {
+      setDescargando(false);
+    }
+  };
 
   const hoy = new Date().toLocaleDateString('es-CO', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
@@ -174,6 +204,47 @@ export default function AdminDashboardPage() {
               </span>
               <span className="text-sm font-medium text-gray-700">Gestionar usuarios</span>
             </Link>
+          </div>
+        </div>
+
+        {/* Exportar reporte */}
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Reporte de ventas</h2>
+          <div className="bg-white border border-gray-100 rounded-xl p-5 flex flex-col sm:flex-row sm:items-end gap-4">
+            <div className="flex gap-3 flex-1 flex-wrap">
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
+                <input
+                  type="date"
+                  value={reporteDesde}
+                  onChange={e => { setReporteDesde(e.target.value); setErrorReporte(null); }}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
+                <input
+                  type="date"
+                  value={reporteHasta}
+                  onChange={e => { setReporteHasta(e.target.value); setErrorReporte(null); }}
+                  className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col items-start gap-1">
+              {errorReporte && <p className="text-xs text-red-500">{errorReporte}</p>}
+              <button
+                onClick={descargarReporte}
+                disabled={descargando}
+                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                {descargando ? 'Generando...' : 'Descargar CSV'}
+              </button>
+            </div>
           </div>
         </div>
 
