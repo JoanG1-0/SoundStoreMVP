@@ -12,7 +12,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.mail.SimpleMailMessage;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class OtpServiceTest {
@@ -46,6 +47,7 @@ class OtpServiceTest {
         when(otpCodeRepository.countByEmailAndTypeAndCreatedAtAfter(anyString(), any(), any()))
                 .thenReturn(0L);
         when(otpCodeRepository.save(any(OtpCode.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
 
         otpService.generateAndSend("test@test.com", OtpType.REGISTRATION);
 
@@ -59,7 +61,7 @@ class OtpServiceTest {
         assertThat(saved.isUsed()).isFalse();
         assertThat(saved.getExpiresAt()).isAfter(LocalDateTime.now());
 
-        verify(mailSender).send(any(SimpleMailMessage.class));
+        verify(mailSender).send(any(MimeMessage.class));
     }
 
     @Test
@@ -71,7 +73,7 @@ class OtpServiceTest {
                 () -> otpService.generateAndSend("test@test.com", OtpType.REGISTRATION));
 
         verify(otpCodeRepository, never()).save(any());
-        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+        verify(mailSender, never()).send(any(MimeMessage.class));
     }
 
     @Test
@@ -79,6 +81,7 @@ class OtpServiceTest {
         when(otpCodeRepository.countByEmailAndTypeAndCreatedAtAfter(anyString(), any(), any()))
                 .thenReturn(0L);
         when(otpCodeRepository.save(any(OtpCode.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(mailSender.createMimeMessage()).thenReturn(mock(MimeMessage.class));
 
         otpService.generateAndSend("test@test.com", OtpType.REGISTRATION);
 
