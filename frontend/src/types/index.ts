@@ -81,6 +81,17 @@ export interface SesionUsuario extends Usuario {
 }
 
 // ========================
+// Admin
+// ========================
+
+export interface MetricasDashboard {
+  pedidosDelDia: number;
+  pedidosPendientes: number;
+  productosStockBajo: number;
+  ventasDelMes: number;
+}
+
+// ========================
 // API — Respuestas genericas
 // ========================
 
