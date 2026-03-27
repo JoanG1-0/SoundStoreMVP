@@ -57,7 +57,7 @@ export default function DetallePedidoPage() {
     const token = getToken();
     if (!token) return;
 
-    api.get<Pedido>(`/api/orders/${id}`, token)
+    api.get<Pedido>(`/orders/${id}`, token)
       .then(setPedido)
       .catch(() => setError('No se encontró el pedido'))
       .finally(() => setCargando(false));

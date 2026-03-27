@@ -48,7 +48,7 @@ export default function PedidosPage() {
     const token = getToken();
     if (!token) return;
 
-    api.get<Pedido[]>('/api/orders/mis-pedidos', token)
+    api.get<Pedido[]>('/orders/mis-pedidos', token)
       .then(setPedidos)
       .catch(() => setError('No se pudo cargar el historial de pedidos'))
       .finally(() => setCargando(false));

@@ -22,21 +22,37 @@ export default function CheckoutPage() {
   const router = useRouter();
   const [pedido, setPedido] = useState<Pedido | null>(null);
 
+  // 🔹 1. Cargar desde sessionStorage (SIN borrar)
   useEffect(() => {
     const guardado = sessionStorage.getItem('pedido_confirmacion');
+
     if (!guardado) {
       router.replace('/catalogo');
       return;
     }
+
     try {
       setPedido(JSON.parse(guardado));
-      sessionStorage.removeItem('pedido_confirmacion');
     } catch {
       router.replace('/catalogo');
     }
   }, [router]);
 
-  if (!pedido) return null;
+  // 🔹 2. Borrar DESPUÉS de tener el pedido en estado
+  useEffect(() => {
+    if (pedido) {
+      sessionStorage.removeItem('pedido_confirmacion');
+    }
+  }, [pedido]);
+
+  // 🔹 Loading state (mejor UX)
+  if (!pedido) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-400">
+        Cargando pedido...
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
@@ -91,7 +107,9 @@ export default function CheckoutPage() {
             <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">Productos</p>
             {pedido.items.map((item) => (
               <div key={item.id} className="flex justify-between text-sm">
-                <span className="text-gray-700">{item.productName} <span className="text-gray-400">x{item.quantity}</span></span>
+                <span className="text-gray-700">
+                  {item.productName} <span className="text-gray-400">x{item.quantity}</span>
+                </span>
                 <span className="font-medium text-gray-900">{formatearPrecio(item.subtotal)}</span>
               </div>
             ))}

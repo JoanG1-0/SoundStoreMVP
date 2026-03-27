@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public interface OrderRepository extends JpaRepository<Order, UUID> {
 
-    @Query("SELECT COUNT(o) FROM Order o WHERE FUNCTION('YEAR', o.createdAt) = :year")
+    @Query(value = "SELECT COUNT(*) FROM orders o WHERE EXTRACT(YEAR FROM o.created_at) = :year", nativeQuery = true)
     long countByYear(@Param("year") int year);
 
     @Query("SELECT o FROM Order o WHERE o.status NOT IN :excluidos ORDER BY o.createdAt DESC")

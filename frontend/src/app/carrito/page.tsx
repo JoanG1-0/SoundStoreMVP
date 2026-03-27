@@ -47,7 +47,7 @@ export default function CarritoPage() {
     const validarStock = async () => {
       setValidando(true);
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/cart/validate`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart/validate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(items.map((i) => ({ productId: i.producto.id, quantity: i.cantidad }))),
@@ -118,7 +118,7 @@ export default function CarritoPage() {
     setErrorConfirmar(null);
     try {
       const pedido = await api.post<Pedido>(
-        '/api/orders',
+        '/orders',
         {
           items: items.map((i) => ({ productId: i.producto.id, quantity: i.cantidad })),
           deliveryType: modalidad,

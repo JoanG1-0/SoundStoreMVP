@@ -31,8 +31,12 @@ public class OrderEmailService {
         message.setSubject(construirAsunto(numeroOrden, status));
         message.setText(construirCuerpo(nombre, numeroOrden, status));
 
-        mailSender.send(message);
-        log.info("Notificación de pedido enviada a {} — pedido: {} estado: {}", email, numeroOrden, status);
+        try {
+            mailSender.send(message);
+            log.info("Notificación de pedido enviada a {} — pedido: {} estado: {}", email, numeroOrden, status);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar el correo de notificación para el pedido {} — {}", numeroOrden, e.getMessage());
+        }
     }
 
     private String construirAsunto(String numeroOrden, OrderStatus status) {
