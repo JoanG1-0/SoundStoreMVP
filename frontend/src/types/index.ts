@@ -59,6 +59,8 @@ export interface Pedido {
   id: string;
   orderNumber: string;
   userId: string;
+  userName?: string;
+  userEmail?: string;
   status: EstadoPedido;
   deliveryType: TipoEntrega;
   deliveryAddress?: string;

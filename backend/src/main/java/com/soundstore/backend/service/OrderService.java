@@ -193,6 +193,8 @@ public class OrderService {
                 order.getId(),
                 order.getOrderNumber(),
                 order.getUser().getId(),
+                order.getUser().getFullName(),
+                order.getUser().getEmail(),
                 order.getStatus(),
                 order.getDeliveryType(),
                 order.getDeliveryAddress(),

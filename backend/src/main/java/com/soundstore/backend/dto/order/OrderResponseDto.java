@@ -12,6 +12,8 @@ public record OrderResponseDto(
         UUID id,
         String orderNumber,
         UUID userId,
+        String userName,
+        String userEmail,
         OrderStatus status,
         DeliveryType deliveryType,
         String deliveryAddress,
