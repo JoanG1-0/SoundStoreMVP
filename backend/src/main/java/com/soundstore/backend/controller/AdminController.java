@@ -3,7 +3,9 @@ package com.soundstore.backend.controller;
 import com.soundstore.backend.dto.admin.CreateUserRequestDto;
 import com.soundstore.backend.dto.admin.ToggleStatusRequestDto;
 import com.soundstore.backend.dto.admin.UserResponseDto;
+import com.soundstore.backend.dto.order.OrderResponseDto;
 import com.soundstore.backend.service.AdminService;
+import com.soundstore.backend.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final OrderService orderService;
 
     @GetMapping
     public List<UserResponseDto> listUsers() {
@@ -35,5 +38,10 @@ public class AdminController {
             @PathVariable UUID id,
             @Valid @RequestBody ToggleStatusRequestDto request) {
         return adminService.toggleStatus(id, request);
+    }
+
+    @GetMapping("/{id}/pedidos")
+    public List<OrderResponseDto> pedidosPorUsuario(@PathVariable UUID id) {
+        return orderService.pedidosPorUsuario(id);
     }
 }

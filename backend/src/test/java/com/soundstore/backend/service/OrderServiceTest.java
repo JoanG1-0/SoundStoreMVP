@@ -587,4 +587,36 @@ class OrderServiceTest {
         assertThrows(OrderNotFoundException.class,
                 () -> orderService.updateStatus(id, OrderStatus.CONFIRMED));
     }
+
+    // ---------------------------------------------------------------
+    // pedidosPorUsuario (SS-45)
+    // ---------------------------------------------------------------
+
+    @Test
+    void pedidosPorUsuario_retornaPedidosDelUsuario() {
+        User buyer = buildBuyer();
+        Product product = buildProduct(5);
+
+        Order o1 = buildSavedOrder(buyer, product, 1);
+        Order o2 = buildSavedOrder(buyer, product, 2);
+
+        when(orderRepository.findByUserIdOrderByCreatedAtDesc(buyer.getId()))
+                .thenReturn(List.of(o1, o2));
+
+        List<OrderResponseDto> result = orderService.pedidosPorUsuario(buyer.getId());
+
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(OrderResponseDto::userId)
+                .containsOnly(buyer.getId());
+    }
+
+    @Test
+    void pedidosPorUsuario_sinPedidos_retornaListaVacia() {
+        UUID userId = UUID.randomUUID();
+        when(orderRepository.findByUserIdOrderByCreatedAtDesc(userId)).thenReturn(List.of());
+
+        List<OrderResponseDto> result = orderService.pedidosPorUsuario(userId);
+
+        assertThat(result).isEmpty();
+    }
 }

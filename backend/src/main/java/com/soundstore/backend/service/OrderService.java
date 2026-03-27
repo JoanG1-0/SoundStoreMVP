@@ -33,6 +33,12 @@ public class OrderService {
     private final UserRepository userRepository;
     private final OrderEmailService orderEmailService;
 
+    @Transactional(readOnly = true)
+    public List<OrderResponseDto> pedidosPorUsuario(UUID userId) {
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream().map(this::toDto).toList();
+    }
+
     @Transactional
     public OrderResponseDto create(CreateOrderRequestDto request, String userEmail) {
         User user = userRepository.findByEmail(userEmail)
