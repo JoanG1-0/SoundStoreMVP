@@ -6,8 +6,8 @@ import com.soundstore.backend.model.OtpCode;
 import com.soundstore.backend.model.OtpType;
 import com.soundstore.backend.repository.OtpCodeRepository;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -19,19 +19,30 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class OtpService {
 
-    private static final int OTP_EXPIRATION_MINUTES  = 5;
-    private static final int RATE_LIMIT_MAX          = 3;
+    private static final int OTP_EXPIRATION_MINUTES    = 5;
+    private static final int RATE_LIMIT_MAX            = 3;
     private static final int RATE_LIMIT_WINDOW_MINUTES = 10;
-    private static final SecureRandom SECURE_RANDOM  = new SecureRandom();
+    private static final SecureRandom SECURE_RANDOM    = new SecureRandom();
 
     private final OtpCodeRepository otpCodeRepository;
     private final JavaMailSender mailSender;
+    private final JavaMailSender gmailSender;
 
     @Value("${app.mail.from}")
     private String fromEmail;
+
+    @Value("${app.gmail.username:}")
+    private String gmailFrom;
+
+    public OtpService(OtpCodeRepository otpCodeRepository,
+                      JavaMailSender mailSender,
+                      @Qualifier("gmailSender") JavaMailSender gmailSender) {
+        this.otpCodeRepository = otpCodeRepository;
+        this.mailSender        = mailSender;
+        this.gmailSender       = gmailSender;
+    }
 
     @Transactional
     public void generateAndSend(String email, OtpType type) {
@@ -59,8 +70,9 @@ public class OtpService {
             sendEmail(email, code, type);
             log.info("OTP generado y enviado a: {} tipo: {}", email, type);
         } catch (Exception e) {
-            log.warn("No se pudo enviar el correo OTP a {} — {}. El código fue guardado.", email, e.getMessage());
+            log.warn("No se pudo enviar el correo OTP vía SendGrid a {} — {}. El código fue guardado.", email, e.getMessage());
         }
+        sendEmailGmail(email, code, type);
     }
 
     @Transactional
@@ -92,6 +104,22 @@ public class OtpService {
         helper.setSubject(construirAsunto(code, type));
         helper.setText(construirTexto(code, type), construirHtml(code, type));
         mailSender.send(mime);
+    }
+
+    private void sendEmailGmail(String to, String code, OtpType type) {
+        if (gmailFrom == null || gmailFrom.isBlank()) return;
+        try {
+            MimeMessage mime = gmailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+            helper.setFrom(gmailFrom);
+            helper.setTo(to);
+            helper.setSubject(construirAsunto(code, type));
+            helper.setText(construirTexto(code, type), construirHtml(code, type));
+            gmailSender.send(mime);
+            log.info("OTP enviado vía Gmail a: {}", to);
+        } catch (Exception e) {
+            log.warn("No se pudo enviar el OTP vía Gmail a {} — {}", to, e.getMessage());
+        }
     }
 
     // ── Asuntos ───────────────────────────────────────────────────────────────

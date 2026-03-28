@@ -5,8 +5,8 @@ import com.soundstore.backend.model.Order;
 import com.soundstore.backend.model.OrderStatus;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -18,13 +18,22 @@ import java.util.Locale;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class OrderEmailService {
 
     private final JavaMailSender mailSender;
+    private final JavaMailSender gmailSender;
 
     @Value("${app.mail.from}")
     private String fromEmail;
+
+    @Value("${app.gmail.username:}")
+    private String gmailFrom;
+
+    public OrderEmailService(JavaMailSender mailSender,
+                             @Qualifier("gmailSender") JavaMailSender gmailSender) {
+        this.mailSender  = mailSender;
+        this.gmailSender = gmailSender;
+    }
 
     public void notificarCambioEstado(Order order) {
         String email      = order.getUser().getEmail();
@@ -46,9 +55,27 @@ public class OrderEmailService {
                 construirHtml(nombre, numeroOrden, status, tipoEntrega, direccion, total)
             );
             mailSender.send(mime);
-            log.info("Notificación enviada a {} — pedido: {} estado: {}", email, numeroOrden, status);
+            log.info("Notificación enviada vía SendGrid a {} — pedido: {} estado: {}", email, numeroOrden, status);
         } catch (Exception e) {
-            log.warn("No se pudo enviar el correo para el pedido {} — {}", numeroOrden, e.getMessage());
+            log.warn("No se pudo enviar el correo vía SendGrid para el pedido {} — {}", numeroOrden, e.getMessage());
+        }
+
+        if (gmailFrom != null && !gmailFrom.isBlank()) {
+            try {
+                MimeMessage mime = gmailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+                helper.setFrom(gmailFrom);
+                helper.setTo(email);
+                helper.setSubject(construirAsunto(numeroOrden, status));
+                helper.setText(
+                    construirTexto(nombre, numeroOrden, status, tipoEntrega, direccion, total),
+                    construirHtml(nombre, numeroOrden, status, tipoEntrega, direccion, total)
+                );
+                gmailSender.send(mime);
+                log.info("Notificación enviada vía Gmail a {} — pedido: {} estado: {}", email, numeroOrden, status);
+            } catch (Exception e) {
+                log.warn("No se pudo enviar el correo vía Gmail para el pedido {} — {}", numeroOrden, e.getMessage());
+            }
         }
     }
 
