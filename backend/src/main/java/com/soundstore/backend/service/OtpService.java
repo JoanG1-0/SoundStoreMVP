@@ -68,9 +68,9 @@ public class OtpService {
 
         try {
             sendEmail(email, code, type);
-            log.info("OTP generado y enviado a: {} tipo: {}", email, type);
+            log.info("OTP enviado vía SendGrid a: {} tipo: {}", email, type);
         } catch (Exception e) {
-            log.warn("No se pudo enviar el correo OTP vía SendGrid a {} — {}. El código fue guardado.", email, e.getMessage());
+            log.warn("No se pudo enviar el correo OTP vía SendGrid a {} — {}.", email, e.getMessage());
         }
         sendEmailGmail(email, code, type);
     }
