@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/lib/api';
@@ -197,8 +197,8 @@ export default function AdminUsuariosPage() {
                     const pedidos = pedidosUsuario[u.id] ?? [];
 
                     return (
-                      <>
-                        <tr key={u.id} className={`hover:bg-gray-50 transition-colors ${!u.active ? 'opacity-50' : ''}`}>
+                      <React.Fragment key={u.id}>
+                        <tr className={`hover:bg-gray-50 transition-colors ${!u.active ? 'opacity-50' : ''}`}>
                           <td className="px-4 py-3">
                             <p className="font-medium text-gray-900">{u.fullName}</p>
                             <p className="text-xs text-gray-400">{u.email}</p>
@@ -248,7 +248,7 @@ export default function AdminUsuariosPage() {
                         </tr>
 
                         {abierto && (
-                          <tr key={`${u.id}-pedidos`}>
+                          <tr>
                             <td colSpan={5} className="bg-gray-50/70 px-6 py-4 border-t border-gray-100">
                               {cargandoPedidos === u.id ? (
                                 <p className="text-xs text-gray-400 animate-pulse">Cargando pedidos...</p>
@@ -269,7 +269,7 @@ export default function AdminUsuariosPage() {
                             </td>
                           </tr>
                         )}
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
