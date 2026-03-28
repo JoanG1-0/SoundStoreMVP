@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import jakarta.mail.internet.MimeMessage;
@@ -23,23 +22,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 class OtpServiceTest {
 
-    @Mock
-    private OtpCodeRepository otpCodeRepository;
+    @Mock private OtpCodeRepository otpCodeRepository;
+    @Mock private JavaMailSender mailSender;
+    @Mock private JavaMailSender gmailSender;
 
-    @Mock
-    private JavaMailSender mailSender;
-
-    @InjectMocks
     private OtpService otpService;
 
     @BeforeEach
     void setUp() {
+        otpService = new OtpService(otpCodeRepository, mailSender, gmailSender);
         ReflectionTestUtils.setField(otpService, "fromEmail", "noreply@soundstore.com");
+        ReflectionTestUtils.setField(otpService, "gmailFrom", "");
     }
 
     @Test
